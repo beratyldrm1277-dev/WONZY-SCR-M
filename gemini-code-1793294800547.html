@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wonzy Organizasyon - PUBG Mobile Scrim</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; padding: 15px; }
+        .container { max-width: 650px; margin: 0 auto; background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        h1 { text-align: center; color: #f59e0b; margin-bottom: 5px; font-size: 22px; text-transform: uppercase; letter-spacing: 1px; }
+        .sub-title { text-align: center; color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+        
+        .panel { background: #334155; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .panel h3 { margin-bottom: 12px; color: #38bdf8; font-size: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        label { font-size: 12px; color: #cbd5e1; font-weight: bold; }
+        select, input, button { padding: 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: #fff; font-size: 14px; }
+        select:focus, input:focus { outline: 2px solid #38bdf8; }
+        
+        button { font-weight: bold; cursor: pointer; border: none; transition: 0.2s; }
+        .btn-add { background: #10b981; color: white; width: 100%; height: 45px; }
+        .btn-add:hover { background: #059669; }
+        .btn-minus { background: #ef4444; color: white; }
+        .btn-minus:hover { background: #dc2626; }
+        .btn-download { background: #f59e0b; color: #0f172a; width: 100%; margin-top: 10px; font-size: 14px; padding: 12px; }
+        .btn-download:hover { background: #d97706; }
+        .btn-reset { background: #64748b; color: white; margin-top: 10px; width: 100%; font-size: 12px; padding: 8px; }
+
+        .slot-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
+        .slot-card { background: #0f172a; padding: 8px 12px; border-radius: 6px; border-left: 4px solid #f59e0b; font-size: 13px; display: flex; justify-content: space-between; }
+
+        #captureArea, #slotCaptureArea { background: #1e293b; padding: 15px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #334155; font-size: 13px; }
+        th { background-color: #0f172a; color: #94a3b8; text-transform: uppercase; }
+        tr:nth-child(1) td { color: #f59e0b; font-weight: bold; font-size: 15px; } 
+        tr:nth-child(2) td { color: #cbd5e1; font-weight: bold; } 
+        tr:nth-child(3) td { color: #b45309; font-weight: bold; } 
+        
+        .alert-box { padding: 10px; border-radius: 6px; background: #0284c7; color: white; font-size: 13px; text-align: center; margin-bottom: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏆 WONZY ORGANİZASYON</h1>
+    <div class="sub-title">PUBG Mobile Esports Scoring System</div>
+
+    <div id="alertBox" class="alert-box"></div>
+
+    <!-- YÖNETİCİ PANELİ -->
+    <div id="adminPanel" class="panel">
+        <h3>⚡ Maç Puanı / Ceza Girişi</h3>
+        
+        <div class="form-group">
+            <label>Takım / Slot Seç</label>
+            <select id="teamSelect"></select>
+        </div>
+
+        <div class="form-group" style="display: flex; flex-direction: row; gap: 10px;">
+            <div style="flex:1;">
+                <label>Sıralama (1 - 23)</label>
+                <input type="number" id="rankInput" placeholder="Örn: 1" min="1" max="23">
+            </div>
+            <div style="flex:1;">
+                <label>Kill Sayısı (Her Kill 1P)</label>
+                <input type="number" id="killInput" placeholder="Örn: 5" min="0">
+            </div>
+        </div>
+        
+        <button class="btn-add" onclick="addScore()">+ ESPOR MAÇ PUANI EKLE</button>
+
+        <hr style="border: 0.5px solid #475569; margin: 15px 0;">
+
+        <div class="form-group" style="display: flex; flex-direction: row; gap: 10px; align-items: flex-end;">
+            <div style="flex:2;">
+                <label>Puan Sil (Ceza)</label>
+                <input type="number" id="penaltyInput" placeholder="Silinecek Puan">
+            </div>
+            <button class="btn-minus" style="flex:1; height: 42px;" onclick="applyPenalty()">- PUAN SİL</button>
+        </div>
+
+        <button class="btn-reset" onclick="resetAllScores()">⚠️ Tüm Puanları Sıfırla (Yeni Turnuva)</button>
+    </div>
+
+    <!-- SLOT LİSTESİ ALANI -->
+    <div class="panel" id="slotPanel">
+        <div id="slotCaptureArea">
+            <h2 style="text-align: center; color: #38bdf8; font-size: 16px; margin-bottom: 5px;">🔥 WONZY ORGANİZASYON SLOT LİSTESİ 🔥</h2>
+            <p style="text-align: center; color: #94a3b8; font-size: 11px; margin-bottom: 10px;">23 Takımlı Özel Scrim Dağılımı</p>
+            <div class="slot-grid" id="slotDisplay"></div>
+        </div>
+
+        <button class="btn-download" onclick="downloadImage('slotCaptureArea', 'Wonzy_Slot_Listesi')">📸 Slot Görselini İndir (Galeriye Kaydet)</button>
+    </div>
+
+    <!-- CANLI SKOR TABLOSU -->
+    <div class="panel">
+        <div id="captureArea">
+            <h2 style="text-align: center; color: #f59e0b; margin-bottom: 5px; font-size: 18px;">📊 OVERALL STANDINGS (GENEL SIRALAMA)</h2>
+            <p style="text-align: center; color: #94a3b8; font-size: 11px; margin-bottom: 10px;">Wonzy Organizasyon Güncel Puan Tablosu</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Takım</th>
+                        <th>WWCD</th>
+                        <th>Sıra P.</th>
+                        <th>Kill P.</th>
+                        <th>Toplam</th>
+                    </tr>
+                </thead>
+                <tbody id="scoreTable"></tbody>
+            </table>
+        </div>
+
+        <button class="btn-download" onclick="downloadImage('captureArea', 'Wonzy_Esports_Sonuc')">📸 Puan Tablosunu İndir (Galeriye Kaydet)</button>
+    </div>
+</div>
+
+<script>
+    const teamsList = [
+        "TEAM 1 - NEXT GAIN ESPORTS",
+        "TEAM 2 - SEMFONEYS ESPOR",
+        "TEAM 3 - KARA ESPORTS",
+        "TEAM 4 - ASMALI ESPOR",
+        "TEAM 5 - ASMALI FUTURE",
+        "TEAM 6 - L7F ESPOR",
+        "TEAM 7 - NOVA77 ESPORTS",
+        "TEAM 8 - LYNX ESPORTS",
+        "TEAM 9 - NOVA ESPORT",
+        "TEAM 10 - SHARKLAR ESPOR",
+        "TEAM 11 - NV ESPORTS",
+        "TEAM 12 - LOVE NEVER EXPİRES",
+        "TEAM 13 - DENEME KADRO ESPOR",
+        "TEAM 14 - KARA V7 ESPOR",
+        "TEAM 15 - UNF ESPORTS",
+        "TEAM 16 - SSR ESPORTS",
+        "TEAM 17 - HAZIRLIK KADRO TEAM",
+        "TEAM 18 - ERC ESPORTS",
+        "TEAM 19 - SLİTHEE E-SPOR",
+        "TEAM 20 - ON STAFF E SPOR",
+        "TEAM 21 - SYNDRA SSS ESPOR",
+        "TEAM 22 - WONZY ESPOR",
+        "TEAM 23 - EUROPA ESPOR"
+    ];
+
+    const rankPoints = { 1: 10, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 1 };
+    let teamStats = {};
+
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        if (urlParams.get('viewer') === 'true') {
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('slotPanel').style.display = 'none';
+        }
+
+        loadScores();
+        populateTeamSelect();
+        renderTable();
+        renderSlots();
+
+        // Her 1 saniyede bir verileri otomatik kontrol et (Telefonlardaki depolama gecikmelerini sıfırlar)
+        setInterval(loadAndRefresh, 1000);
+    };
+
+    function loadAndRefresh() {
+        const saved = localStorage.getItem('wonzy_esports_stats');
+        if (saved) {
+            try {
+                let parsed = JSON.parse(saved);
+                if (JSON.stringify(parsed) !== JSON.stringify(teamStats)) {
+                    teamStats = parsed;
+                    renderTable();
+                }
+            } catch(e) {}
+        }
+    }
+
+    function loadScores() {
+        const saved = localStorage.getItem('wonzy_esports_stats');
+        if (saved) {
+            try { teamStats = JSON.parse(saved); } catch(e) { initDefaultScores(); }
+        } else {
+            initDefaultScores();
+        }
+    }
+
+    function initDefaultScores() {
+        teamStats = {};
+        teamsList.forEach(t => {
+            teamStats[t] = { wwcd: 0, rankPts: 0, killPts: 0, total: 0 };
+        });
+        saveScores();
+    }
+
+    function saveScores() {
+        localStorage.setItem('wonzy_esports_stats', JSON.stringify(teamStats));
+    }
+
+    function renderSlots() {
+        const container = document.getElementById('slotDisplay');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        teamsList.forEach((team) => {
+            let card = document.createElement('div');
+            card.className = 'slot-card';
+            card.innerHTML = `<span>${team}</span>`;
+            container.appendChild(card);
+        });
+
+        container.innerHTML += `<div class="slot-card" style="opacity: 0.5;"><span>SLOT 24 - BOŞ</span></div>`;
+        container.innerHTML += `<div class="slot-card" style="opacity: 0.5;"><span>SLOT 25 - BOŞ</span></div>`;
+    }
+
+    function populateTeamSelect() {
+        const select = document.getElementById('teamSelect');
+        if (!select) return;
+        select.innerHTML = '';
+        teamsList.forEach(t => {
+            let opt = document.createElement('option');
+            opt.value = t;
+            opt.innerText = t;
+            select.appendChild(opt);
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('scoreTable');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        let sorted = Object.entries(teamStats).sort((a, b) => {
+            if (b[1].total !== a[1].total) return b[1].total - a[1].total;
+            if (b[1].wwcd !== a[1].wwcd) return b[1].wwcd - a[1].wwcd;
+            return b[1].killPts - a[1].killPts;
+        });
+
+        sorted.forEach(([team, stat], index) => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><b>${index + 1}</b></td>
+                <td>${team}</td>
+                <td>${stat.wwcd}</td>
+                <td>${stat.rankPts}</td>
+                <td>${stat.killPts}</td>
+                <td><b>${stat.total}</b></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showAlert(msg) {
+        const box = document.getElementById('alertBox');
+        if (!box) return;
+        box.innerText = msg;
+        box.style.display = 'block';
+        setTimeout(() => box.style.display = 'none', 3000);
+    }
+
+    function addScore() {
+        const team = document.getElementById('teamSelect').value;
+        const rank = parseInt(document.getElementById('rankInput').value) || 0;
+        const kills = parseInt(document.getElementById('killInput').value) || 0;
+
+        if (rank === 0 && kills === 0) {
+            alert("Lütfen Sıralama veya Kill Sayısı girin!");
+            return;
+        }
+
+        const rPoint = rankPoints[rank] || 0;
+        const isWWCD = rank === 1 ? 1 : 0;
+
+        if (!teamStats[team]) {
+            teamStats[team] = { wwcd: 0, rankPts: 0, killPts: 0, total: 0 };
+        }
+
+        teamStats[team].wwcd += isWWCD;
+        teamStats[team].rankPts += rPoint;
+        teamStats[team].killPts += kills;
+        teamStats[team].total += (rPoint + kills);
+
+        saveScores();
+        renderTable();
+
+        document.getElementById('rankInput').value = '';
+        document.getElementById('killInput').value = '';
+        showAlert(`✅ ${team} -> Sıra: ${rPoint}P + Kill: ${kills}P eklendi!`);
+    }
+
+    function applyPenalty() {
+        const team = document.getElementById('teamSelect').value;
+        const penalty = parseInt(document.getElementById('penaltyInput').value) || 0;
+
+        if (penalty === 0) return;
+        if (!teamStats[team]) return;
+
+        teamStats[team].total -= penalty;
+
+        saveScores();
+        renderTable();
+
+        document.getElementById('penaltyInput').value = '';
+        showAlert(`⚠️ ${team} takımından ${penalty} ceza puanı düşüldü!`);
+    }
+
+    function resetAllScores() {
+        if (confirm("Tüm puanlar sıfırlanacak. Emin misin?")) {
+            initDefaultScores();
+            renderTable();
+            showAlert("Tüm puanlar sıfırlandı!");
+        }
+    }
+
+    function downloadImage(elementId, fileName) {
+        const captureElement = document.getElementById(elementId);
+        
+        html2canvas(captureElement, {
+            backgroundColor: "#1e293b",
+            scale: 2
+        }).then(canvas => {
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `${fileName}_${new Date().toISOString().slice(0,10)}.png`;
+            link.click();
+        });
+    }
+</script>
+
+</body>
+</html>
